@@ -7,8 +7,8 @@ app.use(express.json());
 
 // Sample data
 let todos = [
-  { id: 1, task: "Learn Node.js", completed: false },
-  { id: 2, task: "Build a REST API", completed: false }
+  { id: 1, task: "Learn Node.js", completed: false, priority: "medium" },
+  { id: 2, task: "Build a REST API", completed: false, priority: "medium" }
 ];
 
 // GET /todos - Retrieve all to-do items (Read)
@@ -39,27 +39,31 @@ app.post('/todos', (req, res) => {
 });
 
 // PUT /todos/complete-all - Mark all to-dos as completed
-app.put('/todos/complete-all', (req, res) => {
-  todos.forEach(todo => {
-    todo.completed = true;  // Set the 'completed' status to true for each to-do
-  });
-  res.json({ message: "All to-do items marked as completed" });  // Send a success message
+// PUT /todos/:id - Update an existing to-do item
+app.put('/todos/:id', (req, res, next) => {
+  if (req.url.includes("complete-all"))
+    next()
+  else {
+    const id = parseInt(req.params.id);
+    const todo = todos.find(t => t.id === id);
+    if (!todo) {
+      return res.status(404).send("To-Do item not found");
+    }
+    todo.task = req.body.task || todo.task;
+    todo.completed = req.body.completed !== undefined ? req.body.completed : todo.completed;
+    res.json(todo);
+  }
 });
 
-// PUT /todos/:id - Update an existing to-do item
-app.put('/todos/:id', (req, res) => {
-  const id = parseInt(req.params.id); // Get ID from URL
-  const todo = todos.find(t => t.id === id); // Find to-do by ID
-
-  if (!todo) {
-    return res.status(404).send("To-Do item not found"); // If not found, send 404
+app.put('/todos/complete-all', (req, res) => {
+  if (!todos) {
+    return res.status(404).send("To-Do item not found");
   }
-
-  // Update task and completed status if provided
-  todo.task = req.body.task || todo.task;
-  todo.completed = req.body.completed !== undefined ? req.body.completed : todo.completed;
-
-  res.json(todo); // Send updated to-do as response
+  todos.forEach(item => {
+    item.completed = true
+  })
+  // You must return a 200 or 204 status code to the client indicating success of this operation
+  res.status(200).send();
 });
 
 // DELETE /todos/:id - Delete a to-do item
